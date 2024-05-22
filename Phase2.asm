@@ -3,28 +3,55 @@ newline: .asciiz "\n"
 SboxCombined: .byte 0x02, 0x0F, 0x0C, 0x01, 0x05, 0x06, 0x0A, 0x0D, 0x0E, 0x08, 0x03, 0x04, 0x00, 0x0B, 0x09, 0x07, 0x0F, 0x04, 0x05, 0x08, 0x09, 0x07, 0x02, 0x01, 0x0A, 0x03, 0x00, 0x0E, 0x06, 0x0C, 0x0D, 0x0B, 0x04, 0x0A, 0x01, 0x06, 0x08, 0x0F, 0x07, 0x0C, 0x03, 0x00, 0x0E, 0x0D, 0x05, 0x09, 0x0B, 0x02, 0x07, 0x0C, 0x0E, 0x09, 0x02, 0x01, 0x05, 0x0F, 0x0B, 0x06, 0x0D, 0x00, 0x04, 0x08, 0x0A, 0x03 
 Pbox: .byte 0x05, 0x07, 0x03, 0x04, 0x02, 0x06, 0x01, 0x00
 
-keyVector: .half 0x2301, 0x6745, 0xAB89, 0xEFCD, 0xDCFE, 0x98BA, 0x5476, 0x1032
-initialVector: .half 0x3412, 0x7856, 0xBC9A, 0xF0DE
-stateVector: .half 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000
+keyVector: .word 0x00002301, 0x00006745, 0x0000AB89, 0x0000EFCD, 0x0000DCFE, 0x000098BA, 0x00005476, 0x00001032
+initialVector: .word 0x00003412, 0x00007856, 0x0000BC9A, 0x0000F0DE
+stateVector: .word 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000
 
-X: .half 0xbbaa
-A: .half 0xcccc
-B: .half 0xdddd
+X: .word 0x0000bbaa
+A: .word 0x0000cccc
+B: .word 0x0000dddd
 
+test: .word 0x0000bbaa
 
 .text
 main:	
-	la $s7, newline
-
-	la $s0, X
-	la $s1, A
-	la $s2, B
-	lhu $a0, 0($s0)
-	lhu $a1, 0($s1)
-	lhu $a2, 0($s2)
-	jal W_x
-	move $a0, $v0
+	
+	jal init_func
+	
+	la $s0, stateVector
+	lw $t0, 0($s0)
+	lw $t1, 4($s0)
+	lw $t2, 8($s0)
+	lw $t3, 12($s0)
+	lw $t4, 16($s0)
+	lw $t5, 20($s0)
+	lw $t6, 24($s0)
+	lw $t7, 28($s0)
+	
+	move $a0, $t0
 	jal printInteger
+	
+	move $a0, $t1
+	jal printInteger
+	
+	move $a0, $t2
+	jal printInteger	
+	
+	move $a0, $t3
+	jal printInteger	
+	
+	move $a0, $t4
+	jal printInteger	
+	
+	move $a0, $t5
+	jal printInteger
+	
+	move $a0, $t6
+	jal printInteger	
+	
+	move $a0, $t7
+	jal printInteger
+	
 	 
 	
 finish:		
@@ -32,83 +59,151 @@ finish:
 
 
 init_func:
-	addi $sp, $sp, 16
+	addi $sp, $sp, -36
 	sw $ra, 0($sp)
 	sw $s0, 4($sp)
 	sw $s1, 8($sp)
 	sw $s2, 12($sp)
+	sw $s3, 16($sp)
+	sw $s4, 20($sp)
+	sw $s5, 24($sp)
+	sw $s6, 28($sp)
+	sw $s7, 32($sp)
 	
 	la $s0, initialVector
 	la $s1, keyVector
 	la $s2, stateVector
 	# Ri = IVi mod 4 for i:0->7
-	lhu $t0, 0($s0)
+	lw $t0, 0($s0)
 	sw $t0, 0($s2)
-	lhu $t0, 2($s0)
-	sw $t0, 2($s2)
-	lhu $t0, 4($s0)
-	sw $t0, 4($s2)	
-	lhu $t0, 6($s0)
-	sw $t0, 6($s2)
-	lhu $t0, 0($s0)
+	lw $t0, 4($s0)
+	sw $t0, 4($s2)
+	lw $t0, 8($s0)
 	sw $t0, 8($s2)	
-	lhu $t0, 2($s0)
-	sw $t0, 10($s2)	
-	lhu $t0, 4($s0)
+	lw $t0, 12($s0)
 	sw $t0, 12($s2)
-	lhu $t0, 6($s0)
-	sw $t0, 14($s2)
+	lw $t0, 0($s0)
+	sw $t0, 16($s2)	
+	lw $t0, 4($s0)
+	sw $t0, 20($s2)	
+	lw $t0, 8($s0)
+	sw $t0, 24($s2)
+	lw $t0, 12($s0)
+	sw $t0, 28($s2)
 	
-	add $t4, $t4, $zero
+	add $s3, $zero, $zero
 	setupLoop:
-		beq $t4, 4, exitInitFunc
+		beq $s3, 4, exitInitFunc
 		
-		lhu $t5, 0($s2)
-		add $t6, $t5, $t4
+		lw $t5, 0($s2)
+		add $t6, $t5, $s3
 		andi $t6, $t6, 65535
 		move $a0, $t6
-		lhu $a1, 2($s1)
-		lhu $a2, 6($s1)
+		lw $a1, 4($s1)
+		lw $a2, 12($s1)
 		jal W_x
-		move $t0, $v0
+		move $s4, $v0
 		
-		lhu $t5, 2($s2)
-		add $t6, $t5, $t4
+		lw $t5, 4($s2)
+		add $t6, $t5, $s4
 		andi $t6, $t6, 65535
 		move $a0, $t6
-		lhu $a1, 10($s1)
-		lhu $a2, 14($s1)
+		lw $a1, 20($s1)
+		lw $a2, 28($s1)
 		jal W_x
-		move $t1, $v0
+		move $s5, $v0
 		
-		lhu $t5, 4($s2)
-		add $t6, $t5, $t4
+		lw $t5, 8($s2)
+		add $t6, $t5, $s5
 		andi $t6, $t6, 65535
 		move $a0, $t6
-		lhu $a1, 0($s1)
-		lhu $a2, 4($s1)
+		lw $a1, 0($s1)
+		lw $a2, 8($s1)
 		jal W_x
-		move $t2, $v0
+		move $s6, $v0
 		
 		
-		lhu $t5, 6($s2)
-		add $t6, $t5, $t4
+		lw $t5, 12($s2)
+		add $t6, $t5, $s6
 		andi $t6, $t6, 65535
 		move $a0, $t6
-		lhu $a1, 8($s1)
-		lhu $a2, 12($s1)
+		lw $a1, 16($s1)
+		lw $a2, 24($s1)
 		jal W_x
-		move $t3, $v0
+		move $s7, $v0
 		# t0-1-2-3 are calculated 
 		
+		lw $t5, 0($s2)
+		add $t6, $t5, $s7
+		andi $t6, $t6, 65535
+		sll $t5, $t6, 7
+		srl $t7, $t6, 9
+		or $t6, $t5, $t7
+		andi $t6, $t6, 65535
+		sw $t6, 0($s2)
 		
+		lw $t5, 4($s2)
+		add $t6, $t5, $s4
+		andi $t6, $t6, 65535
+		srl $t5, $t6, 4
+		sll $t7, $t6, 12
+		or $t6, $t5, $t7
+		andi $t6, $t6, 65535
+		sw $t6, 4($s2)
+		
+		lw $t5, 8($s2)
+		add $t6, $t5, $s5
+		andi $t6, $t6, 65535
+		sll $t5, $t6, 2
+		srl $t7, $t6, 14
+		or $t6, $t5, $t7
+		andi $t6, $t6, 65535
+		sw $t6, 8($s2)
+		
+		lw $t5, 12($s2)
+		add $t6, $t5, $s6
+		andi $t6, $t6, 65535
+		srl $t5, $t6, 9
+		sll $t7, $t6, 7
+		or $t6, $t5, $t7
+		andi $t6, $t6, 65535
+		sw $t6, 12($s2)
+		
+		# now xor operations
+		lw $t5, 16($s2)
+		lw $t3, 12($s2)
+		xor $t6, $t5, $t3
+		sw $t6, 16($s2)
+		
+		lw $t5, 20($s2)
+		lw $t3, 4($s2)
+		xor $t6, $t5, $t3
+		sw $t6, 20($s2)
+		
+		lw $t5, 24($s2)
+		lw $t3, 8($s2)
+		xor $t6, $t5, $t3
+		sw $t6, 24($s2)
+		
+		lw $t5, 28($s2)
+		lw $t3, 0($s2)
+		xor $t6, $t5, $t3
+		sw $t6, 28($s2)
+		
+		addi $s3, $s3, 1
+		j setupLoop
 		
 	exitInitFunc:
 		lw $ra, 0($sp)
 		lw $s0, 4($sp)
 		lw $s1, 8($sp)
 		lw $s2, 12($sp)
-		addi $sp, $sp, 16
+		lw $s3, 16($sp)
+		sw $s4, 20($sp)
+		sw $s5, 24($sp)
+		sw $s6, 28($sp)
+		sw $s7, 32($sp)
+		addi $sp, $sp, 36
 		jr $ra
 
 W_x:
@@ -327,8 +422,9 @@ exit:
 printInteger:
 	li $v0, 1
 	syscall
-		
-	add $a0, $zero, $s7        
+
+	la $a0, newline		
+	#add $a0, $zero, $t0        
     	li $v0, 4
     	syscall
 	jr $ra
