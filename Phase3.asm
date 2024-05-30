@@ -6,62 +6,54 @@ Pbox: .byte 0x05, 0x07, 0x03, 0x04, 0x02, 0x06, 0x01, 0x00
 keyVector: .word 0x2301, 0x6745, 0xAB89, 0xEFCD, 0xDCFE, 0x98BA, 0x5476, 0x1032
 initialVector: .word 0x3412, 0x7856, 0xBC9A, 0xF0DE
 stateVector: .word 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000
-plainText: .word 0x1100, 0x3322, 0x5544, 0x7766, 0x9988, 0xBBAA, 0xDDCC, 0xFFEE
+plainText: .word 0x1100, 0x3322, 0x5544, 0x7766, 0x9988, 0xBBAA, 0xDDCC, 0xFFEE, 0x0
+cipherText: .word 0x1, 0x1, 0x1, 0x1, 0x1, 0x1, 0x1, 0x1, 0x0
 
 
 .text
 main:	
 	
 	jal init_func
+	jal encryptAll
 	
-	la $s0, plainText
-	
-	lw $a0, 0($s0)
-	jal encrypt
-	move $a0, $v0
-	jal printInteger
-
-	lw $a0, 4($s0)
-	jal encrypt
-	move $a0, $v0
-	jal printInteger
-	
-	lw $a0, 8($s0)
-	jal encrypt
-	move $a0, $v0
-	jal printInteger
-	
-	lw $a0, 12($s0)
-	jal encrypt
-	move $a0, $v0
-	jal printInteger
-	
-	lw $a0, 16($s0)
-	jal encrypt
-	move $a0, $v0
-	jal printInteger
-	
-	lw $a0, 20($s0)
-	jal encrypt
-	move $a0, $v0
-	jal printInteger
-	
-	lw $a0, 24($s0)
-	jal encrypt
-	move $a0, $v0
-	jal printInteger
-	
-	lw $a0, 28($s0)
-	jal encrypt
-	move $a0, $v0
-	jal printInteger
+	la $a0, cipherText
+	jal printArray
 		
 finish:		
 	j exit
 	
+encryptAll:
+	addi $sp, $sp, -16
+	sw $ra, 0($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $s2, 12($sp)
+	
+	
+	la $s0, plainText
+	la $s1, cipherText
+	
+	encryptLoop:
+		lw $s2, 0($s0)	#load plainText[i]
+		beqz $s2, exit_encryptLoop
+		move $a0, $s2
+		jal encrypt16bit
+		move $s2, $v0
+		sw $s2, 0($s1)
+		addi $s0, $s0, 4
+		addi $s1, $s1, 4
+		j encryptLoop
+	exit_encryptLoop:
+		sw $zero, 0($s1)	#set the last index of ciphertext to 0
+	
+	lw $ra, 0($sp)
+	lw $t0, 4($sp)
+	lw $t1, 8($sp)
+	lw $t2, 12($sp)
+	addi $sp, $sp, 16
+	jr $ra
 
-
-encrypt:
+encrypt16bit:
 	addi $sp, $sp, -36
 	sw $ra, 0($sp)
 	sw $s0, 4($sp)
@@ -553,23 +545,6 @@ S_x:
 	srl $t7, $t7, 4
 	andi $t1, $t7, 15
 	
-	# mapping of S(xi) with multiple S-boxes	
-#	add $t0, $s1, $t1
-#	lb $t0, 0($t0)
-#	sll $t0, $t0, 4
-#	add $t1, $s2, $t2
-#	lb $t2, 0($t1)
-#	add $t0, $t0, $t2
-#	sll $t0, $t0, 4	
-#	add $t2, $s3, $t3
-#	lb $t1, 0($t2)
-#	add $t0, $t0, $t1
-#	sll $t0, $t0, 4
-#	add $t1, $s4, $t4
-#	lb $t2, 0($t1)
-#	add $t0, $t0, $t2	
-#	add $v0, $zero, $t0
-	
 	# with single S-box
 	add $t0, $s0, $t1
 	lb $t1, 0($t0)
@@ -599,17 +574,40 @@ S_x:
 exit:
       	li $v0, 10
       	syscall
-      
-      
-# load the integer to $a0 before calling
-# sample (want to print $s0) => add $a0, $s0, $zero
-printInteger:
-	li $v0, 34
-	syscall
 
-	la $a0, newline		
-	#add $a0, $zero, $t0        
-    	li $v0, 4
-    	syscall
-	jr $ra
-		
+
+printArray:
+    addi $sp, $sp, -12
+    sw $ra, 8($sp)
+    sw $s0, 4($sp)
+    sw $s1, 0($sp)
+
+    move $s0, $a0
+
+printLoop:
+    lw $s1, 0($s0)
+    beqz $s1, end_printLoop
+
+    addi $s0, $s0, 4
+    move $a0, $s1
+    jal printHex
+
+    j printLoop
+
+end_printLoop:
+    lw $s1, 0($sp)
+    lw $s0, 4($sp)
+    lw $ra, 8($sp)
+    addi $sp, $sp, 12
+
+    jr $ra
+
+printHex:
+    li $v0, 34
+    syscall
+
+    la $a0, newline
+    li $v0, 4
+    syscall
+
+    jr $ra
