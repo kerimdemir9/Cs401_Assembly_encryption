@@ -47,9 +47,9 @@ encryptAll:
 		sw $zero, 0($s1)	#set the last index of ciphertext to 0
 	
 	lw $ra, 0($sp)
-	lw $t0, 4($sp)
-	lw $t1, 8($sp)
-	lw $t2, 12($sp)
+	lw $s0, 4($sp)
+	lw $s1, 8($sp)
+	lw $s2, 12($sp)
 	addi $sp, $sp, 16
 	jr $ra
 
