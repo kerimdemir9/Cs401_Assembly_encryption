@@ -2,6 +2,7 @@
 newline: .asciiz "\n"
 SboxCombined: .byte 0x02, 0x0F, 0x0C, 0x01, 0x05, 0x06, 0x0A, 0x0D, 0x0E, 0x08, 0x03, 0x04, 0x00, 0x0B, 0x09, 0x07, 0x0F, 0x04, 0x05, 0x08, 0x09, 0x07, 0x02, 0x01, 0x0A, 0x03, 0x00, 0x0E, 0x06, 0x0C, 0x0D, 0x0B, 0x04, 0x0A, 0x01, 0x06, 0x08, 0x0F, 0x07, 0x0C, 0x03, 0x00, 0x0E, 0x0D, 0x05, 0x09, 0x0B, 0x02, 0x07, 0x0C, 0x0E, 0x09, 0x02, 0x01, 0x05, 0x0F, 0x0B, 0x06, 0x0D, 0x00, 0x04, 0x08, 0x0A, 0x03 
 Pbox: .byte 0x05, 0x07, 0x03, 0x04, 0x02, 0x06, 0x01, 0x00
+prompt: .asciiz "Enter a 16-bit hexadecimal number: "
 
 inverse_S_lookup:
     # Inverse S-box S0
@@ -16,32 +17,97 @@ inverse_S_lookup:
 keyVector: .word 0x2301, 0x6745, 0xAB89, 0xEFCD, 0xDCFE, 0x98BA, 0x5476, 0x1032
 initialVector: .word 0x3412, 0x7856, 0xBC9A, 0xF0DE
 stateVector: .word 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000
-plainText: .word 0x1100, 0x3322, 0x5544, 0x7766, 0x9988, 0xBBAA, 0xDDCC, 0xFFEE, 0x0
+#plainText: .word 0x1100, 0x3322, 0x5544, 0x7766, 0x9988, 0xBBAA, 0xDDCC, 0xFFEE, 0x0
 cipherText: .word 0x1, 0x1, 0x1, 0x1, 0x1, 0x1, 0x1, 0x1, 0x0
 decrypted: .word 0x1, 0x1, 0x1, 0x1, 0x1, 0x1, 0x1, 0x1, 0x0
+plainText: .word 0x1, 0x1, 0x1, 0x1, 0x1, 0x1, 0x1, 0x1, 0x0
 
 .text
 main:	
 	
+	jal get8DecimalInput
+	la $a0, plainText
+	jal printArray
+	
+	la $a0, newline
+    	li $v0, 4
+    	syscall
+	
 	jal init_func
 	jal encryptAll
+	la $a0, cipherText
+	jal printArray
+	
+	la $a0, newline
+    	li $v0, 4
+    	syscall
 	
 	jal init_func	
-	la $s0, cipherText
+	jal decryptAll
+	la $a0, decrypted
+	jal printArray
 	
-	lw $a0, 0($s0)
-	jal decrypt16bit
-	add $a0, $v0, $zero
-	jal printHex
-	
-	lw $a0, 4($s0)
-	jal decrypt16bit
-	add $a0, $v0, $zero
-	jal printHex
 		
 finish:		
 	j exit
 	
+	
+get8DecimalInput:
+	la $t0, plainText
+	li $t1, 0
+	
+	inputLoop:
+		beq $t1, 8, exitInputLoop
+		
+		li $v0, 4       
+        	la $a0, prompt 
+        	syscall         
+	        # Read integer input
+        	li $v0, 5          
+		syscall
+	
+		add $t2, $t1, $t1
+		add $t3, $t2, $t2
+		add $t4, $t0, $t3
+		
+		sw $v0, 0($t4)
+		addi $t1, $t1, 1
+		
+		j inputLoop
+	exitInputLoop:
+		jr $ra
+	
+	
+decryptAll:
+	addi $sp, $sp, -16
+	sw $ra, 0($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $s2, 12($sp)
+	
+	
+	la $s0, cipherText
+	la $s1, decrypted
+	
+	decryptLoop:
+		lw $s2, 0($s0)	#load cipherText[i]
+		beqz $s2, exit_decryptLoop
+		move $a0, $s2
+		jal decrypt16bit
+		move $s2, $v0
+		sw $s2, 0($s1)
+		addi $s0, $s0, 4
+		addi $s1, $s1, 4
+		j decryptLoop
+	exit_decryptLoop:
+		sw $zero, 0($s1)	#set the last index of ciphertext to 0
+	
+	lw $ra, 0($sp)
+	lw $s0, 4($sp)
+	lw $s1, 8($sp)
+	lw $s2, 12($sp)
+	addi $sp, $sp, 16
+	jr $ra
 	
 	
 decrypt16bit:
